@@ -2,6 +2,7 @@ import threading
 import asyncio
 import exportniosconsole  # Import the script that contains the Nios console
 import pygame
+import time
 
 def start_nios_console():
     """Runs exportniosconsole's main() inside a dedicated asyncio event loop in a thread."""
@@ -136,15 +137,17 @@ class Ball:
             return -1
         else:
             return 0
-
+        
     def reset(self):
         self.posx = WIDTH // 2
         self.posy = HEIGHT // 2
         self.xFac *= -1
         self.firstTime = 1
+        self.speed = 7
 
     def hit(self):
         self.xFac *= -1
+        self.speed += 3
 
     def getRect(self):
         return self.ball
@@ -173,6 +176,22 @@ def main():
         screen.fill(BLACK)
         bit_width = 32
         
+        if (JFHScore or NoobScore == 7):
+            running = False
+            if JFHScore == 7:
+                text = font20.render("JFH VICTORY :P", True, WHITE)
+            else:
+                text = font20.render("NOOB VICTORY Bo", True, WHITE)
+                
+            screen.blit(text, (WIDTH // 2 - 40, HEIGHT // 2 - 10))
+            pygame.display.update()
+            time.sleep(5)
+            JFHScore = 0
+            NoobScore = 0
+            replay_mode = False
+            ball.reset()
+            running = True 
+            
         if isinstance(exportniosconsole.strip_output, str): 
             if (exportniosconsole.strip_output != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
                 paddle1_value = int(exportniosconsole.strip_output, 16)  # Convert HEX to int
@@ -244,6 +263,7 @@ def main():
             else:
                 replay_mode = False
                 ball.reset()
+                
         else:
             JFH.update(paddle1_pos)
             Noob.update(paddle2_pos)
@@ -257,14 +277,15 @@ def main():
                     JFHScore += 1
                 elif point == 1:
                     NoobScore += 1
-
+                    
+                    
         JFH.display()
         Noob.display()
         ball.display()
 
     
-        JFH.displayScore("Big Dog JFH : ", exportniosconsole.strip_output, 100, 20, WHITE)
-        Noob.displayScore("MegaNoob : ", exportniosconsole.decoded_msg, WIDTH - 100, 20, WHITE)
+        JFH.displayScore("Big Dog JFH : ", JFHScore, 100, 20, WHITE)
+        Noob.displayScore("MegaNoob : ", NoobScore, WIDTH - 100, 20, WHITE)
 
         pygame.display.update()
         clock.tick(FPS if not replay_mode else FPS // 2)
