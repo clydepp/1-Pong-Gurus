@@ -166,7 +166,7 @@ def main():
 
     JFH = Striker(20, 0, 10, 150, 20, RED)
     Noob = Striker(WIDTH - 30, 0, 10, 150, 20, BLUE)
-    ball = Ball(WIDTH // 2, HEIGHT // 2, 12, 7, WHITE)
+    ball = Ball(WIDTH // 2, HEIGHT // 2, 12, 10, WHITE)
 
     listOfPlayers = [JFH, Noob]
     JFHScore, NoobScore = 0, 0
@@ -176,7 +176,7 @@ def main():
         screen.fill(BLACK)
         bit_width = 32
         
-        if (JFHScore or NoobScore == 7):
+        if (JFHScore == 7 or NoobScore == 7):
             running = False
             if JFHScore == 7:
                 text = font20.render("JFH VICTORY :P", True, WHITE)
