@@ -1,15 +1,26 @@
 import pygame
+import threading
+
+#from exportniosconsole import stream_nios_console, strip_output, strip_output_event
+
+import exportniosconsole
 
 pygame.init()
 
-font20 = pygame.font.Font('freesansbold.ttf', 20)
-font40 = pygame.font.Font('freesansbold.ttf', 40)
+font20 = pygame.font.Font("freesansbold.ttf", 20)
+font40 = pygame.font.Font("freesansbold.ttf", 40)
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
+global message
+
+# Start the stream_nios_console function in a separate thread
+stream_thread = threading.Thread(target=exportniosconsole.stream_nios_console)
+stream_thread.daemon = True  # Allow the game to exit even if the thread is running
+stream_thread.start()
 
 WIDTH, HEIGHT = 900, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -18,29 +29,31 @@ pygame.display.set_caption("Group1Pong")
 clock = pygame.time.Clock()
 FPS = 30
 
+
 def show_start_screen():
     screen.fill(BLACK)
     title_text = font40.render("Group 1 Information Processing Gurus", True, WHITE)
     title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 4))
     button_text = font20.render("Press SPACE to Play", True, WHITE)
     button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2, 200, 50)
-    
+
     running = True
     while running:
         screen.fill(BLACK)
         screen.blit(title_text, title_rect)
         pygame.draw.rect(screen, WHITE, button_rect, 2)
         screen.blit(button_text, button_text.get_rect(center=button_rect.center))
-        
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 running = False
-        
+
         pygame.display.update()
         clock.tick(FPS)
+
 
 class Striker:
     def __init__(self, posx, posy, width, height, speed, color):
@@ -118,6 +131,7 @@ class Ball:
 
 def main():
     show_start_screen()
+
     running = True
     replay_mode = False
     replay_frames = []
@@ -125,9 +139,9 @@ def main():
     replay_flash = True
     flash_timer = 0
 
-    JFH = Striker(20, 0, 10, 100, 10, RED)
-    Noob = Striker(WIDTH - 30, 0, 10, 100, 10, BLUE)
-    ball = Ball(WIDTH // 2, HEIGHT // 2, 7, 7, WHITE)
+    JFH = Striker(20, 0, 10, 150, 20, RED)
+    Noob = Striker(WIDTH - 30, 0, 10, 150, 20, BLUE)
+    ball = Ball(WIDTH // 2, HEIGHT // 2, 12, 7, WHITE)
 
     listOfPlayers = [JFH, Noob]
     JFHScore, NoobScore = 0, 0
@@ -135,16 +149,41 @@ def main():
 
     while running:
         screen.fill(BLACK)
+        bit_width = 32
+        
+        if isinstance(exportniosconsole.strip_output, str): 
+            if (exportniosconsole.strip_output != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
+                paddle1_value = int(exportniosconsole.strip_output, 16)  # Convert HEX to int
+                if (paddle1_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
+                    paddle1_pos = paddle1_value - (1 << bit_width)  # Perform two's complement conversion
+                else:
+                    paddle1_pos = paddle1_value 
+
+        if isinstance(exportniosconsole.decoded_msg, str): 
+            if (exportniosconsole.decoded_msg != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
+                paddle2_value = int(exportniosconsole.decoded_msg, 16)  # Convert HEX to int
+                if (paddle2_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
+                    paddle2_pos = paddle2_value - (1 << bit_width)  # Perform two's complement conversion
+                else:
+                    paddle2_pos = paddle2_value 
+
+        
+        
+        print(paddle1_pos)   
+        paddle1_pos =  paddle1_pos / 100
+        paddle2_pos =  paddle2_pos / 100
         
         if not replay_mode:
             if len(replay_frames) > 30:
                 replay_frames.pop(0)
-            replay_frames.append({
-                "ball_pos": (ball.posx, ball.posy),
-                "JFH_pos": JFH.posy,
-                "Noob_pos": Noob.posy
-            })
-        
+            replay_frames.append(
+                {
+                    "ball_pos": (ball.posx, ball.posy),
+                    "JFH_pos": JFH.posy,
+                    "Noob_pos": Noob.posy,
+                }
+            )
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -184,8 +223,8 @@ def main():
                 replay_mode = False
                 ball.reset()
         else:
-            JFH.update(JFHYFac)
-            Noob.update(NoobYFac)
+            JFH.update(paddle1_pos)
+            Noob.update(paddle2_pos)
             point = ball.update()
             if point:
                 replay_mode = True
@@ -200,11 +239,14 @@ def main():
         JFH.display()
         Noob.display()
         ball.display()
-        JFH.displayScore("Big Dog JFH : ", JFHScore, 100, 20, WHITE)
-        Noob.displayScore("MegaNoob : ", NoobScore, WIDTH - 100, 20, WHITE)
+
+    
+        JFH.displayScore("Big Dog JFH : ", exportniosconsole.strip_output, 100, 20, WHITE)
+        Noob.displayScore("MegaNoob : ", exportniosconsole.decoded_msg, WIDTH - 100, 20, WHITE)
 
         pygame.display.update()
         clock.tick(FPS if not replay_mode else FPS // 2)
+
 
 if __name__ == "__main__":
     main()
