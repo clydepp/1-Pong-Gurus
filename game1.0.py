@@ -1,9 +1,17 @@
-import pygame
 import threading
+import asyncio
+import exportniosconsole  # Import the script that contains the Nios console
+import pygame
 
-#from exportniosconsole import stream_nios_console, strip_output, strip_output_event
+def start_nios_console():
+    """Runs exportniosconsole's main() inside a dedicated asyncio event loop in a thread."""
+    loop = asyncio.new_event_loop()  # Create a new event loop for the thread
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(exportniosconsole.main())  # Run exportniosconsole
 
-import exportniosconsole
+# Start exportniosconsole in a separate thread
+nios_thread = threading.Thread(target=start_nios_console, daemon=True)
+nios_thread.start()
 
 pygame.init()
 
@@ -18,9 +26,9 @@ BLUE = (0, 0, 255)
 global message
 
 # Start the stream_nios_console function in a separate thread
-stream_thread = threading.Thread(target=exportniosconsole.stream_nios_console)
-stream_thread.daemon = True  # Allow the game to exit even if the thread is running
-stream_thread.start()
+# stream_thread = threading.Thread(target=exportniosconsole.stream_nios_console)
+# stream_thread.daemon = True  # Allow the game to exit even if the thread is running
+# stream_thread.start()
 
 WIDTH, HEIGHT = 900, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -29,7 +37,20 @@ pygame.display.set_caption("Group1Pong")
 clock = pygame.time.Clock()
 FPS = 30
 
+def run_async_task(coro):
+    """Runs an async function inside a separate event loop in a thread."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(coro)
 
+def start_threads():
+    """Start the Nios console stream and TCP client as separate threads."""
+    stream_thread = threading.Thread(target=run_async_task, args=(exportniosconsole.stream_nios_console(),), daemon=True)
+    tcp_thread = threading.Thread(target=run_async_task, args=(exportniosconsole.tcp_client(),), daemon=True)
+
+    stream_thread.start()
+    tcp_thread.start()
+    
 def show_start_screen():
     screen.fill(BLACK)
     title_text = font40.render("Group 1 Information Processing Gurus", True, WHITE)
@@ -130,6 +151,7 @@ class Ball:
 
 
 def main():
+    start_threads()
     show_start_screen()
 
     running = True
