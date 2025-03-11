@@ -207,7 +207,7 @@ def main():
     player_r = Striker(WIDTH - 30, 0, 10, 150, 20, BLUE)
     ball = Ball(WIDTH // 2, HEIGHT // 2, 12, 10, WHITE)
 
-    listOfPlayers = [username_l, username_r]
+    listOfPlayers = [player_l, player_r]
     player_l_Score, player_r_Score = 0, 0
     player_l_YFac, player_r_YFac = 0, 0
     paddle1_pos = 0
