@@ -2,7 +2,7 @@ import asyncio
 from collections import deque
 
 # Server details
-SERVER_HOST = "18.175.137.59"
+SERVER_HOST = "18.130.232.65"
 SERVER_PORT = 12000
 NIOS_CMD_SHELL_BAT = "C:/intelFPGA_lite/18.1/nios2eds/Nios_II_Command_Shell.bat"
 

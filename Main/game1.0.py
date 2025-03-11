@@ -5,7 +5,7 @@ import pygame
 import time
 
 def start_nios_console():
-    """Runs exportniosconsole's main() inside a dedicated asyncio event loop in a thread."""
+    #Runs exportniosconsole's main() inside a dedicated asyncio event loop in a thread.
     loop = asyncio.new_event_loop()  # Create a new event loop for the thread
     asyncio.set_event_loop(loop)
     loop.run_until_complete(exportniosconsole.main())  # Run exportniosconsole
@@ -24,8 +24,6 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
-global message
-
 # Start the stream_nios_console function in a separate thread
 # stream_thread = threading.Thread(target=exportniosconsole.stream_nios_console)
 # stream_thread.daemon = True  # Allow the game to exit even if the thread is running
@@ -39,18 +37,57 @@ clock = pygame.time.Clock()
 FPS = 30
 
 def run_async_task(coro):
-    """Runs an async function inside a separate event loop in a thread."""
+    #Runs an async function inside a separate event loop in a thread.
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(coro)
 
 def start_threads():
-    """Start the Nios console stream and TCP client as separate threads."""
+    #Start the Nios console stream and TCP client as separate threads.
     stream_thread = threading.Thread(target=run_async_task, args=(exportniosconsole.stream_nios_console(),), daemon=True)
     tcp_thread = threading.Thread(target=run_async_task, args=(exportniosconsole.tcp_client(),), daemon=True)
 
     stream_thread.start()
     tcp_thread.start()
+    
+def enter_username():
+    #asks users for username
+    username_l, username_r = "", ""
+    input_active = "left" #track whose input is active
+    
+    screen.fill(BLACK)
+    running = True
+    
+    while running:
+        screen.fill(BLACK)
+        prompt_text = font40.render(
+            f"Enter {input_active.upper()} Username: {username_l if input_active == 'left' else username_r}",
+            True,
+            WHITE,
+        )
+        screen.blit(prompt_text, (WIDTH // 2 - 200, HEIGHT // 3))
+        
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    if input_active == "left":
+                        input_active = "right"
+                    else:
+                        return username_l, username_r
+                elif event.key == pygame.K_BACKSPACE:
+                    if input_active == "left":
+                        username_l = username_l[:-1]
+                    else:
+                        username_r = username_r[:-1]
+                else:
+                    if input_active == "left":
+                        username_l += event.unicode
+                    else:
+                        username_r += event.unicode
     
 def show_start_screen():
     screen.fill(BLACK)
@@ -154,7 +191,9 @@ class Ball:
 
 
 def main():
+    
     start_threads()
+    username_l, username_r = enter_username()
     show_start_screen()
 
     running = True
@@ -164,30 +203,32 @@ def main():
     replay_flash = True
     flash_timer = 0
 
-    JFH = Striker(20, 0, 10, 150, 20, RED)
-    Noob = Striker(WIDTH - 30, 0, 10, 150, 20, BLUE)
+    player_l = Striker(20, 0, 10, 150, 20, RED)
+    player_r = Striker(WIDTH - 30, 0, 10, 150, 20, BLUE)
     ball = Ball(WIDTH // 2, HEIGHT // 2, 12, 10, WHITE)
 
-    listOfPlayers = [JFH, Noob]
-    JFHScore, NoobScore = 0, 0
-    JFHYFac, NoobYFac = 0, 0
+    listOfPlayers = [username_l, username_r]
+    player_l_Score, player_r_Score = 0, 0
+    player_l_YFac, player_r_YFac = 0, 0
+    paddle1_pos = 0
+    paddle2_pos = 0
 
     while running:
         screen.fill(BLACK)
         bit_width = 32
         
-        if (JFHScore == 7 or NoobScore == 7):
+        if (player_l_Score == 7 or player_r_Score == 7):
             running = False
-            if JFHScore == 7:
-                text = font20.render("JFH VICTORY :P", True, WHITE)
+            if player_l_Score == 7:
+                text = font20.render(username_l + " VICTORY :P", True, WHITE)
             else:
-                text = font20.render("NOOB VICTORY Bo", True, WHITE)
+                text = font20.render(username_r + " VICTORY Bo", True, WHITE)
                 
             screen.blit(text, (WIDTH // 2 - 40, HEIGHT // 2 - 10))
             pygame.display.update()
             time.sleep(5)
-            JFHScore = 0
-            NoobScore = 0
+            player_l_Score = 0
+            player_r_Score = 0
             replay_mode = False
             ball.reset()
             running = True 
@@ -220,8 +261,8 @@ def main():
             replay_frames.append(
                 {
                     "ball_pos": (ball.posx, ball.posy),
-                    "JFH_pos": JFH.posy,
-                    "Noob_pos": Noob.posy,
+                    "player_l_pos": player_l.posy,
+                    "player_r_pos": player_r.posy,
                 }
             )
 
@@ -230,29 +271,29 @@ def main():
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    NoobYFac = -1
+                    player_r_YFac = -1
                 if event.key == pygame.K_DOWN:
-                    NoobYFac = 1
+                    player_r_YFac = 1
                 if event.key == pygame.K_w:
-                    JFHYFac = -1
+                    player_l_YFac = -1
                 if event.key == pygame.K_s:
-                    JFHYFac = 1
+                    player_l_YFac = 1
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
-                    NoobYFac = 0
+                    player_r_YFac = 0
                 if event.key == pygame.K_w or event.key == pygame.K_s:
-                    JFHYFac = 0
+                    player_l_YFac = 0
 
         for player in listOfPlayers:
             if pygame.Rect.colliderect(ball.getRect(), player.getRect()):
                 ball.hit()
 
         if replay_mode:
-            if replay_index < len(replay_frames):
+            if replay_index < len(replay_frames)-1:
                 frame = replay_frames[replay_index]
                 ball.posx, ball.posy = frame["ball_pos"]
-                JFH.posy = frame["JFH_pos"]
-                Noob.posy = frame["Noob_pos"]
+                player_l.posy = frame["player_l_pos"]
+                player_r.posy = frame["player_r_pos"]
                 replay_index += 2
                 flash_timer += 1
                 if flash_timer % 10 == 0:
@@ -265,8 +306,8 @@ def main():
                 ball.reset()
                 
         else:
-            JFH.update(paddle1_pos)
-            Noob.update(paddle2_pos)
+            player_l.update(paddle1_pos)
+            player_r.update(paddle2_pos)
             point = ball.update()
             if point:
                 replay_mode = True
@@ -274,18 +315,18 @@ def main():
                 flash_timer = 0
                 replay_flash = True
                 if point == -1:
-                    JFHScore += 1
+                    player_l_Score += 1
                 elif point == 1:
-                    NoobScore += 1
+                    player_r_Score += 1
                     
                     
-        JFH.display()
-        Noob.display()
+        player_l.display()
+        player_r.display()
         ball.display()
 
     
-        JFH.displayScore("Big Dog JFH : ", JFHScore, 100, 20, WHITE)
-        Noob.displayScore("MegaNoob : ", NoobScore, WIDTH - 100, 20, WHITE)
+        player_l.displayScore(username_l + ": ", player_l_Score, 100, 20, WHITE)
+        player_r.displayScore(username_r + ": ", player_r_Score, WIDTH - 100, 20, WHITE)
 
         pygame.display.update()
         clock.tick(FPS if not replay_mode else FPS // 2)
