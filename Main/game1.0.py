@@ -122,6 +122,8 @@ class Striker:
         self.height = height
         self.speed = speed
         self.color = color
+        self.ballHit = 0
+        self.wins = 0
         self.playerRect = pygame.Rect(posx, posy, width, height)
         self.player = pygame.draw.rect(screen, self.color, self.playerRect)
 
@@ -217,12 +219,15 @@ def main():
         screen.fill(BLACK)
         bit_width = 32
         
-        if (player_l_Score == 7 or player_r_Score == 7):
+        if (player_l_Score == 1 or player_r_Score == 1):
             running = False
-            if player_l_Score == 7:
+            if player_l_Score == 1:
                 text = font20.render(username_l + " VICTORY :P", True, WHITE)
+                player_l.wins += 1
+                
             else:
                 text = font20.render(username_r + " VICTORY Bo", True, WHITE)
+                player_r.wins += 1
                 
             screen.blit(text, (WIDTH // 2 - 40, HEIGHT // 2 - 10))
             pygame.display.update()
@@ -231,7 +236,9 @@ def main():
             player_r_Score = 0
             replay_mode = False
             ball.reset()
-            running = True 
+            username_l, username_r = enter_username()
+            show_start_screen()
+            running = True
             
         if isinstance(exportniosconsole.strip_output, str): 
             if (exportniosconsole.strip_output != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
@@ -287,6 +294,7 @@ def main():
         for player in listOfPlayers:
             if pygame.Rect.colliderect(ball.getRect(), player.getRect()):
                 ball.hit()
+                player.ballHit += 1
 
         if replay_mode:
             if replay_index < len(replay_frames)-1:
