@@ -2,7 +2,7 @@ import asyncio
 from collections import deque
 
 # Server details
-SERVER_HOST = "18.130.232.65"
+SERVER_HOST = "18.134.242.101"
 SERVER_PORT = 12000
 NIOS_CMD_SHELL_BAT = "C:/intelFPGA_lite/18.1/nios2eds/Nios_II_Command_Shell.bat"
 
@@ -43,41 +43,101 @@ async def stream_nios_console():
         await process.wait()
         print("Nios II console stream stopped.")
 
-async def tcp_client():
-    """Handles asynchronous communication with the server."""
-    global strip_output, decoded_msg, total_rtt
-
-    reader, writer = await asyncio.open_connection(SERVER_HOST, SERVER_PORT)
-    print(f"Connected to {SERVER_HOST}:{SERVER_PORT}")
-
+async def send_messages(writer):
+    # asnychronously send messages to the server
+    global strip_output
+    
     try:
         while True:
             await strip_output_event.wait()  # Wait for new console output
-            strip_output_event.clear()  # Reset the event
-
+            strip_output_event.clear()
+            
             if strip_output:
                 message = strip_output
-                processed_msg = message  # Extract hex if present
+                print(f"Message: {message}")
+                
+                writer.write(message.encode())
+                await writer.drain()
+                
+            await asyncio.sleep(0.05)  # Allow time for next message
+    except asyncio.CancelledError:
+        print("Sending messages task cancelled.")
+        
+async def receive_messages(reader):
+    # asynchronously receive messages from the server
+    global decoded_msg
+    
+    try:
+        while True:
+            response = await reader.read(1024)
+            
+            if response:
+                decoded_msg = response.decode()
+                print(f"Received: {decoded_msg}")
+            else:
+                print("Empty response from server.")
+            
+            await asyncio.sleep(0.05)
+    except asyncio.CancelledError:
+        print("Receiving messages task cancelled.")
             
 
-                #start_time = asyncio.get_event_loop().time()  # Start RTT timer
-                writer.write(processed_msg.encode())
-                await writer.drain()  # Ensure data is sent
+# async def tcp_client():
+#     """Handles asynchronous communication with the server."""
+#     global strip_output, decoded_msg, total_rtt
+
+#     reader, writer = await asyncio.open_connection(SERVER_HOST, SERVER_PORT)
+#     print(f"Connected to {SERVER_HOST}:{SERVER_PORT}")
+
+#     try:
+#         while True:
+#             await strip_output_event.wait()  # Wait for new console output
+#             strip_output_event.clear()  # Reset the event
+
+#             if strip_output:
+#                 message = strip_output
+#                 processed_msg = message  # Extract hex if present
+            
+
+#                 #start_time = asyncio.get_event_loop().time()  # Start RTT timer
+#                 writer.write(processed_msg.encode())
+#                 await writer.drain()  # Ensure data is sent
                 
-                #print("[DEBUG] Waiting for response from server...")
-                response = await reader.read(1024)  # Read up to 1024 bytes
+#                 #print("[DEBUG] Waiting for response from server...")
+#                 response = await reader.read(1024)  # Read up to 1024 bytes
 
-                if response:
-                    decoded_msg = response.decode()  # Decode received data
-                    #print(f"[DEBUG] Raw response from server: {response}")
-                    print(f"{decoded_msg}")  # Print received message
-                else:
-                    print("[Warning] Empty response from server.")
+#                 if response:
+#                     decoded_msg = response.decode()  # Decode received data
+#                     #print(f"[DEBUG] Raw response from server: {response}")
+#                     print(f"{decoded_msg}")  # Print received message
+#                 else:
+#                     print("[Warning] Empty response from server.")
 
-            await asyncio.sleep(0.05)  # Allow time for next message
+#             await asyncio.sleep(0.05)  # Allow time for next message
+#     except asyncio.CancelledError:
+#         print("TCP Client Task Cancelled.")
+#     finally:
+#         writer.close()
+#         await writer.wait_closed()
+#         print("Connection closed.")
+
+async def tcp_client():
+    #handles asynchronous communication with the server
+    reader, writer = await asyncio.open_connection(SERVER_HOST, SERVER_PORT)
+    print(f"Connected to {SERVER_HOST}:{SERVER_PORT}")
+    
+    send_task = asyncio.create_task(send_messages(writer))
+    receive_task = asyncio.create_task(receive_messages(reader))
+    
+    try:
+        await asyncio.gather(send_task, receive_task)
     except asyncio.CancelledError:
         print("TCP Client Task Cancelled.")
     finally:
+        send_task.cancel()
+        receive_task.cancel()
+        await asyncio.gather(send_task, receive_task, return_exceptions=True)
+        
         writer.close()
         await writer.wait_closed()
         print("Connection closed.")
@@ -95,3 +155,7 @@ async def main():
         nios_task.cancel()
         tcp_task.cancel()
         await asyncio.gather(nios_task, tcp_task, return_exceptions=True)
+
+if __name__ == "__main__":
+
+    asyncio.run(main())

@@ -192,9 +192,10 @@ class Ball:
         return self.ball
 
 
-def main():
+async def main():
     
-    start_threads()
+    asyncio.create_task(exportniosconsole.main())
+    
     username_l, username_r = enter_username()
     show_start_screen()
 
@@ -219,15 +220,15 @@ def main():
         screen.fill(BLACK)
         bit_width = 32
         
-        if (player_l_Score == 1 or player_r_Score == 1):
+        if (player_l_Score == 4 or player_r_Score == 4):
             running = False
-            if player_l_Score == 1:
+            if player_l_Score == 4:
                 text = font20.render(username_l + " VICTORY :P", True, WHITE)
-                player_l.wins += 1
+                player_l.wins += 4
                 
             else:
                 text = font20.render(username_r + " VICTORY Bo", True, WHITE)
-                player_r.wins += 1
+                player_r.wins += 4
                 
             screen.blit(text, (WIDTH // 2 - 40, HEIGHT // 2 - 10))
             pygame.display.update()
@@ -241,20 +242,26 @@ def main():
             running = True
             
         if isinstance(exportniosconsole.strip_output, str): 
-            if (exportniosconsole.strip_output != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
-                paddle1_value = int(exportniosconsole.strip_output, 16)  # Convert HEX to int
-                if (paddle1_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
-                    paddle1_pos = paddle1_value - (1 << bit_width)  # Perform two's complement conversion
-                else:
-                    paddle1_pos = paddle1_value 
+            try:
+                if (exportniosconsole.strip_output != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
+                    paddle1_value = int(exportniosconsole.strip_output, 16)  # Convert HEX to int
+                    if (paddle1_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
+                        paddle1_pos = paddle1_value - (1 << bit_width)  # Perform two's complement conversion
+                    else:
+                        paddle1_pos = paddle1_value
+            except ValueError:
+                pass
 
         if isinstance(exportniosconsole.decoded_msg, str): 
-            if (exportniosconsole.decoded_msg != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
-                paddle2_value = int(exportniosconsole.decoded_msg, 16)  # Convert HEX to int
-                if (paddle2_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
-                    paddle2_pos = paddle2_value - (1 << bit_width)  # Perform two's complement conversion
-                else:
-                    paddle2_pos = paddle2_value 
+            try:
+                if (exportniosconsole.decoded_msg != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
+                    paddle2_value = int(exportniosconsole.decoded_msg, 16)  # Convert HEX to int
+                    if (paddle2_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
+                        paddle2_pos = paddle2_value - (1 << bit_width)  # Perform two's complement conversion
+                    else:
+                        paddle2_pos = paddle2_value 
+            except ValueError:
+                pass
 
         
         
@@ -338,8 +345,8 @@ def main():
 
         pygame.display.update()
         clock.tick(FPS if not replay_mode else FPS // 2)
-
+        
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
     pygame.quit()
