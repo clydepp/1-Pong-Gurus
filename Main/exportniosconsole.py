@@ -1,8 +1,9 @@
 import asyncio
 from collections import deque
+import json
 
 # Server details
-SERVER_HOST = "18.134.242.101"
+SERVER_HOST = "18.130.75.20"
 SERVER_PORT = 12000
 NIOS_CMD_SHELL_BAT = "C:/intelFPGA_lite/18.1/nios2eds/Nios_II_Command_Shell.bat"
 
@@ -14,7 +15,11 @@ NIOS_CMD_SHELL_BAT = "C:/intelFPGA_lite/18.1/nios2eds/Nios_II_Command_Shell.bat"
 # Shared Variables
 strip_output = None
 decoded_msg = None
+writer = None
 strip_output_event = asyncio.Event()  # Async event for signaling new messages
+username_available_event = asyncio.Event()  # Async event for signaling username availability
+username = None # Username for the client
+side = None # side of player
 
 
 async def stream_nios_console():
@@ -62,6 +67,38 @@ async def send_messages(writer):
             await asyncio.sleep(0.05)  # Allow time for next message
     except asyncio.CancelledError:
         print("Sending messages task cancelled.")
+        
+async def send_json(data, writer):
+    
+    if writer is None:
+        print("Error: No active connection to the server.")
+        return
+    
+    try:
+        # Serialise data as JSON and send
+        json_data = json.dumps(data)
+        writer.write(json_data.encode())
+        await writer.drain()
+        print(f"Sent: {json_data}")
+    except Exception as e:
+        print(f"Error sending json: {e}")
+        
+async def send_username(writer):
+    global username, side
+    try:
+        while True:
+            await username_available_event.wait()
+            username_available_event.clear()
+            
+            if username:
+                data = {
+                    "username": username,
+                    "side": side
+                }
+                
+                await send_json(data, writer)
+    except asyncio.CancelledError:
+        print("Sending username task cancelled.")
         
 async def receive_messages(reader):
     # asynchronously receive messages from the server
@@ -123,30 +160,41 @@ async def receive_messages(reader):
 
 async def tcp_client():
     #handles asynchronous communication with the server
+    global writer
+    
     reader, writer = await asyncio.open_connection(SERVER_HOST, SERVER_PORT)
     print(f"Connected to {SERVER_HOST}:{SERVER_PORT}")
     
     send_task = asyncio.create_task(send_messages(writer))
     receive_task = asyncio.create_task(receive_messages(reader))
+    username_task = asyncio.create_task(send_username(writer))
     
     try:
-        await asyncio.gather(send_task, receive_task)
+        await asyncio.gather(send_task, receive_task, username_task)
     except asyncio.CancelledError:
         print("TCP Client Task Cancelled.")
     finally:
         send_task.cancel()
         receive_task.cancel()
-        await asyncio.gather(send_task, receive_task, return_exceptions=True)
+        await asyncio.gather(send_task, receive_task, username_task, return_exceptions=True)
         
         writer.close()
         await writer.wait_closed()
         print("Connection closed.")
 
 async def main():
+    # global username, side
+    # username_available_event.clear()
+    # username = input("Enter username: ")
+    # side = input("Enter side (e.g., 'client' or 'server'): ")
+    
+    # # Signal that the username is available
+    # username_available_event.set()
+    
     """Main function to start both tasks concurrently."""
     nios_task = asyncio.create_task(stream_nios_console())
     tcp_task = asyncio.create_task(tcp_client())
-
+    
     try:
         await asyncio.gather(nios_task, tcp_task)  # Run both concurrently
     except KeyboardInterrupt:

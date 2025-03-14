@@ -24,10 +24,6 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
-# Start the stream_nios_console function in a separate thread
-# stream_thread = threading.Thread(target=exportniosconsole.stream_nios_console)
-# stream_thread.daemon = True  # Allow the game to exit even if the thread is running
-# stream_thread.start()
 
 WIDTH, HEIGHT = 900, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -36,19 +32,11 @@ pygame.display.set_caption("Group1Pong")
 clock = pygame.time.Clock()
 FPS = 30
 
-def run_async_task(coro):
-    #Runs an async function inside a separate event loop in a thread.
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(coro)
-
-def start_threads():
-    #Start the Nios console stream and TCP client as separate threads.
-    stream_thread = threading.Thread(target=run_async_task, args=(exportniosconsole.stream_nios_console(),), daemon=True)
-    tcp_thread = threading.Thread(target=run_async_task, args=(exportniosconsole.tcp_client(),), daemon=True)
-
-    stream_thread.start()
-    tcp_thread.start()
+# def handle_username_submit(username, side, writer):
+    
+#     # call exportniosconsole to send username as json packet to server
+#     asyncio.ensure_future(exportniosconsole.send_username(username, side, writer))
+#     print(f"Username submitted: {username} for {side} side")
  
 def enter_username():
     #asks users for username
@@ -67,7 +55,8 @@ def enter_username():
             True,
             WHITE,
             )
-            screen.blit(prompt_text, (WIDTH // 2 - 200, HEIGHT // 3))
+            prompt_rect = prompt_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+            screen.blit(prompt_text, prompt_rect)
             pygame.display.update()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -86,7 +75,8 @@ def enter_username():
                 True,
                 WHITE,
             )
-            screen.blit(prompt_text, (WIDTH // 2 - 200, HEIGHT // 3))
+            prompt_rect = prompt_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+            screen.blit(prompt_text, prompt_rect)
             
             pygame.display.update()
             for event in pygame.event.get():
@@ -95,7 +85,19 @@ def enter_username():
                     quit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
-                            return username_l, username_r
+
+                        if input_active == "left":
+                            # handle_username_submit(username_l, "left", writer)
+                            exportniosconsole.username = username_l
+                            
+                        else:
+                            # handle_username_submit(username_r, "right", writer)
+                            exportniosconsole.username = username_r
+                        
+                        exportniosconsole.side = input_active
+                        exportniosconsole.username_available_event.set()
+                        return username_l, username_r
+                    
                     elif event.key == pygame.K_BACKSPACE:
                         if input_active == "left":
                             username_l = username_l[:-1]
