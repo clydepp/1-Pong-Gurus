@@ -49,45 +49,63 @@ def start_threads():
 
     stream_thread.start()
     tcp_thread.start()
-    
+ 
 def enter_username():
     #asks users for username
     username_l, username_r = "", ""
-    input_active = "left" #track whose input is active
+    global input_active #track whose input is active
+    input_active = "neither"
     
     screen.fill(BLACK)
     running = True
     
     while running:
         screen.fill(BLACK)
-        prompt_text = font40.render(
-            f"Enter {input_active.upper()} Username: {username_l if input_active == 'left' else username_r}",
+        if input_active == "neither":
+            prompt_text = font40.render(
+            f"Choose Left(<-) Or Right(->) ",
             True,
             WHITE,
-        )
-        screen.blit(prompt_text, (WIDTH // 2 - 200, HEIGHT // 3))
-        
-        pygame.display.update()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    if input_active == "left":
+            )
+            screen.blit(prompt_text, (WIDTH // 2 - 200, HEIGHT // 3))
+            pygame.display.update()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        input_active = "left"
+                    elif event.key == pygame.K_RIGHT:
                         input_active = "right"
+        else:
+                       
+            
+            prompt_text = font40.render(
+                f"Enter {input_active.upper()} Username: {username_l if input_active == 'left' else username_r}",
+                True,
+                WHITE,
+            )
+            screen.blit(prompt_text, (WIDTH // 2 - 200, HEIGHT // 3))
+            
+            pygame.display.update()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                            return username_l, username_r
+                    elif event.key == pygame.K_BACKSPACE:
+                        if input_active == "left":
+                            username_l = username_l[:-1]
+                        else:
+                            username_r = username_r[:-1]
                     else:
-                        return username_l, username_r
-                elif event.key == pygame.K_BACKSPACE:
-                    if input_active == "left":
-                        username_l = username_l[:-1]
-                    else:
-                        username_r = username_r[:-1]
-                else:
-                    if input_active == "left":
-                        username_l += event.unicode
-                    else:
-                        username_r += event.unicode
+                        if input_active == "left":
+                            username_l += event.unicode
+                        else:
+                            username_r += event.unicode
     
 def show_start_screen():
     screen.fill(BLACK)
@@ -321,8 +339,12 @@ async def main():
                 ball.reset()
                 
         else:
-            player_l.update(paddle1_pos)
-            player_r.update(paddle2_pos)
+            if input_active == "left":    
+                player_l.update(paddle1_pos)
+                player_r.update(paddle2_pos)
+            else:
+                player_l.update(paddle2_pos)
+                player_r.update(paddle1_pos)
             point = ball.update()
             if point:
                 replay_mode = True
