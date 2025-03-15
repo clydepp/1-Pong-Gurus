@@ -3,6 +3,7 @@ import asyncio
 import exportniosconsole  # Import the script that contains the Nios console
 import pygame
 import time
+import json
 
 def start_nios_console():
     #Runs exportniosconsole's main() inside a dedicated asyncio event loop in a thread.
@@ -31,13 +32,49 @@ pygame.display.set_caption("Group1Pong")
 
 clock = pygame.time.Clock()
 FPS = 30
+username_opp = None
+side_opp = None
+opp_username_available = asyncio.Event()
 
+async def listen_for_username():
+    global username_opp, side_opp
+    
+    while True:
+        try:
+            data = json.loads(exportniosconsole.decoded_msg)
+            if isinstance(data, dict) and "username" in data and "side" in data: # check if data is username and side
+                username_opp = data.get("username")
+                side_opp = data.get("side")
+                print(f"Extracted: Username: {username_opp}, Side: {side_opp}")
+                opp_username_available.set()
+        except json.JSONDecodeError:
+            print("Not Json data.")
+            break
+            
 # def handle_username_submit(username, side, writer):
     
 #     # call exportniosconsole to send username as json packet to server
 #     asyncio.ensure_future(exportniosconsole.send_username(username, side, writer))
 #     print(f"Username submitted: {username} for {side} side")
- 
+
+# def listen_for_username():
+#     while True:
+    
+#         try:       
+#             data = json.loads(exportniosconsole.decoded_msg)
+        
+#             try:
+#                 if isinstance(data, dict) and "username" in data and "side" in data: # check if data is username and side
+#                     username = data.get("username")
+#                     side = data.get("side")
+#                     print(f"Extracted: Username: {username}, Side: {side}")
+#                     return username, side
+#             except json.JSONDecodeError:
+#                 print("Not username data.")
+                
+#         except json.JSONDecodeError:
+#             print("Not Json data.")
+    
 def enter_username():
     #asks users for username
     username_l, username_r = "", ""
@@ -96,6 +133,14 @@ def enter_username():
                         
                         exportniosconsole.side = input_active
                         exportniosconsole.username_available_event.set()
+                        username_opp, side = listen_for_username()
+                        
+                        if input_active == "left":
+                            username_r = username_opp
+                        else:
+                            username_l = username_opp
+                            
+                        print(f"Username submitted: {username_r} for {side} side")
                         return username_l, username_r
                     
                     elif event.key == pygame.K_BACKSPACE:
@@ -108,7 +153,97 @@ def enter_username():
                             username_l += event.unicode
                         else:
                             username_r += event.unicode
+                            
+def enter_username_new():
     
+    username = ""
+    global input_active, side_opp, username_opp
+
+    screen.fill(BLACK)
+    running = True
+    
+    while running:
+        screen.fill(BLACK)
+        prompt_text = font40.render(
+                f"Enter Username: {username}",
+                True,
+                WHITE,
+            )
+        prompt_rect = prompt_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+        screen.blit(prompt_text, prompt_rect)
+        
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    while True:
+                        screen.fill(BLACK)
+                        prompt_text = font40.render(
+                            f"Choose Left(<-) Or Right(->) ",
+                            True,
+                            WHITE,
+                        )
+                        username_text = font20.render(f"Username: {username}", True, WHITE)
+                        prompt_rect = prompt_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+                        username_rect = username_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+                        
+                        screen.blit(prompt_text, prompt_rect)
+                        screen.blit(username_text, username_rect)
+                        
+                        #if opponent has submitted side and username, display it 
+                        if(side_opp != None and username_opp != None):
+                            opp_username_text = font20.render(f"Opponent {username_opp} has picked {side_opp}", True, WHITE)
+                            opp_username_rect = opp_username_text.get_rect(center=(WIDTH // 2, HEIGHT // 1.5))
+                            screen.blit(opp_username_text, opp_username_rect)
+                        
+                        pygame.display.update()
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                pygame.quit()
+                                quit()
+                            if event.type == pygame.KEYDOWN:
+                                if (event.key == pygame.K_LEFT and (side_opp == None or side_opp == "right")):
+                                    input_active = "left"
+                                    exportniosconsole.username = username
+                                    exportniosconsole.side = input_active
+                                    exportniosconsole.username_available_event.set()
+                                    return username                                
+                                    
+                                elif (event.key == pygame.K_RIGHT and (side_opp == None or side_opp == "left")):
+                                    input_active = "right"
+                                    exportniosconsole.username = username
+                                    exportniosconsole.side = input_active
+                                    exportniosconsole.username_available_event.set()
+                                    return username   
+                                    
+                                elif ((event.key == pygame.K_LEFT and side_opp == "left") or (event.key == pygame.K_RIGHT and side_opp == "right")):
+                                    subtext_text = font20.render(f"Opponent has already picked {side_opp}", True, RED)
+                                    subtext_rect = subtext_text.get_rect(center=(WIDTH // 2, HEIGHT // 1.2))
+                                    screen.blit(subtext_text, subtext_rect)
+                                    pygame.display.update()
+                                    time.sleep(2)
+                                    continue
+                                
+                    
+                elif event.key == pygame.K_BACKSPACE:
+                    username = username[:-1]
+                else:
+                    username += event.unicode        
+
+def show_waiting_screen():
+    screen.fill(BLACK)
+    title_text = font40.render("Waiting for Opponent...", True, WHITE)
+    title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    screen.blit(title_text, title_rect)
+    pygame.display.update()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            quit()
+
 def show_start_screen():
     screen.fill(BLACK)
     title_text = font40.render("Group 1 Information Processing Gurus", True, WHITE)
@@ -223,8 +358,23 @@ class Ball:
 async def main():
     
     asyncio.create_task(exportniosconsole.main())
+    asyncio.create_task(listen_for_username())
     
-    username_l, username_r = enter_username()
+    username = enter_username_new()
+    if(input_active == "left"):
+        username_l = username
+    elif(input_active == "right"):
+        username_r = username
+        
+    while(username_opp == None):
+        show_waiting_screen()
+    
+    if(username_opp != None):
+        if(side_opp == "left"):
+            username_l = username_opp
+        elif(side_opp == "right"):
+            username_r = username_opp
+        
     show_start_screen()
 
     running = True
