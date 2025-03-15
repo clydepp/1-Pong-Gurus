@@ -1,5 +1,6 @@
 import socket
 import threading
+import json 
 
 # Server settings
 server_port = 12000
@@ -28,6 +29,21 @@ def handle_client(client_socket, addr):
             cmsg = cmsg.decode().strip()
             print(f"Received from {addr}: {cmsg}")
 
+            try: 
+                data = json.loads(cmsg)
+                #print(f"JSON data: {data}")
+                
+                if isinstance(data, dict) and "username" in data and "side" in data: # check if data is username and side
+                    username = data.get("username")
+                    side = data.get("side")
+                    print(f"Extracted: Username: {username}, Side: {side}")
+                    broadcast(cmsg, client_socket)
+                
+                else:
+                    print("Invalid JSON data.")
+            
+            except json.JSONDecodeError:
+                print("Not Json data.")
             # Broadcast message to all other clients
             broadcast(cmsg, client_socket)
 
