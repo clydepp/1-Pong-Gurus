@@ -186,6 +186,12 @@ class Ball:
     def update(self):
         self.posx += self.speed * self.xFac
         self.posy += self.speed * self.yFac
+        
+        exportniosconsole.ballposx = self.posx
+        exportniosconsole.ballposy = self.posy
+        
+        exportniosconsole.ballpos_available_event.set()
+        
         if self.posy <= 0 or self.posy >= HEIGHT:
             self.yFac *= -1
         if self.posx <= 0 and self.firstTime:
@@ -196,6 +202,8 @@ class Ball:
             return -1
         else:
             return 0
+        
+        
         
     def reset(self):
         self.posx = WIDTH // 2
@@ -347,7 +355,9 @@ async def main():
             else:
                 player_l.update(paddle2_pos)
                 player_r.update(paddle1_pos)
+                
             point = ball.update()
+            
             if point:
                 replay_mode = True
                 replay_index = 0

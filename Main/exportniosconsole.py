@@ -18,8 +18,11 @@ decoded_msg = None
 writer = None
 strip_output_event = asyncio.Event()  # Async event for signaling new messages
 username_available_event = asyncio.Event()  # Async event for signaling username availability
+ballpos_available_event = asyncio.Event()
 username = None # Username for the client
 side = None # side of player
+ballposx = None
+ballposy= None
 
 
 async def stream_nios_console():
@@ -99,6 +102,24 @@ async def send_username(writer):
                 await send_json(data, writer)
     except asyncio.CancelledError:
         print("Sending username task cancelled.")
+
+async def send_ballpos(writer):
+    global ballposx
+    global ballposy
+    try:
+        while True:
+            await ballpos_available_event.wait()
+            ballpos_available_event.clear()
+            
+            if ballposx:
+                data = {
+                    "ballposx": ballposx,
+                    "ballposy": ballposy,
+                }
+                
+                await send_json(data, writer)
+    except asyncio.CancelledError:
+        print("Sending ball position task cancelled.")
         
 async def receive_messages(reader):
     # asynchronously receive messages from the server
