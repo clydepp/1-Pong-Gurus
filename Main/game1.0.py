@@ -15,6 +15,8 @@ def start_nios_console():
 nios_thread = threading.Thread(target=start_nios_console, daemon=True)
 nios_thread.start()
 
+
+
 pygame.init()
 
 font20 = pygame.font.Font("freesansbold.ttf", 20)
@@ -35,21 +37,53 @@ FPS = 30
 username_opp = None
 side_opp = None
 opp_username_available = asyncio.Event()
+# ballposx_global, ballposy_global = None, None
+# ballpos_available = asyncio.Event()
 
-async def listen_for_username():
+def listen_for_username():
     global username_opp, side_opp
     
-    while True:
-        try:
-            data = json.loads(exportniosconsole.decoded_msg)
-            if isinstance(data, dict) and "username" in data and "side" in data: # check if data is username and side
-                username_opp = data.get("username")
-                side_opp = data.get("side")
-                print(f"Extracted: Username: {username_opp}, Side: {side_opp}")
-                opp_username_available.set()
-        except json.JSONDecodeError:
-            print("Not Json data.")
-            break
+    if(exportniosconsole.decoded_msg):
+            data = exportniosconsole.decoded_msg
+            try:
+                data = json.loads(data)
+                if isinstance(data, dict) and "username" in data and "side" in data:
+                    username_opp = data.get("username")
+                    side_opp = data.get("side")
+                    print(f"Extracted: Username: {username_opp}, Side: {side_opp}")
+            except json.JSONDecodeError:
+                pass
+            
+# async def listen_for_username():
+#     global username_opp, side_opp
+#     print(f"Listening for username")
+#     while True:
+#         try:
+#             data = json.loads(exportniosconsole.decoded_msg)
+#             if isinstance(data, dict) and "username" in data and "side" in data: # check if data is username and side
+#                 print(f"Data loop")
+#                 username_opp = data.get("username")
+#                 side_opp = data.get("side")
+#                 print(f"Extracted: Username: {username_opp}, Side: {side_opp}")
+#                 opp_username_available.set()
+#         except json.JSONDecodeError:
+#             print("Not Json data.")
+#             break
+        
+# async def listen_for_ballpos():
+#     global ballposx_global, ballposy_global
+    
+#     while True:
+#         try:
+#             data = json.loads(exportniosconsole.decoded_msg)
+#             if isinstance(data, dict) and "ballposx" in data and "ballposy" in data: # check if data is username and side
+#                 ballposx_global = data.get("ballposx")
+#                 ballposy_global = data.get("ballposy")
+#                 print(f"Extracted: Ball Position: {ballposx_global}, {ballposy_global}")
+#                 ballpos_available.set()
+#         except json.JSONDecodeError:
+#             print("Not Json data.")
+#             break
             
 # def handle_username_submit(username, side, writer):
     
@@ -85,6 +119,7 @@ def enter_username():
     running = True
     
     while running:
+        
         screen.fill(BLACK)
         if input_active == "neither":
             prompt_text = font40.render(
@@ -133,14 +168,14 @@ def enter_username():
                         
                         exportniosconsole.side = input_active
                         exportniosconsole.username_available_event.set()
-                        username_opp, side = listen_for_username()
+                        # username_opp, side = listen_for_username()
                         
                         if input_active == "left":
                             username_r = username_opp
                         else:
                             username_l = username_opp
                             
-                        print(f"Username submitted: {username_r} for {side} side")
+                        # print(f"Username submitted: {username_r} for {side} side")
                         return username_l, username_r
                     
                     elif event.key == pygame.K_BACKSPACE:
@@ -163,6 +198,9 @@ def enter_username_new():
     running = True
     
     while running:
+        
+        listen_for_username()
+            
         screen.fill(BLACK)
         prompt_text = font40.render(
                 f"Enter Username: {username}",
@@ -180,6 +218,13 @@ def enter_username_new():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     while True:
+                        if(exportniosconsole.decoded_msg):
+                            data = exportniosconsole.decoded_msg
+                            if isinstance(data, dict) and "username" in data and "side" in data:
+                                username_opp = data.get("username")
+                                side_opp = data.get("side")
+                                print(f"Extracted: Username: {username_opp}, Side: {side_opp}")
+                        
                         screen.fill(BLACK)
                         prompt_text = font40.render(
                             f"Choose Left(<-) Or Right(->) ",
@@ -234,15 +279,25 @@ def enter_username_new():
                     username += event.unicode        
 
 def show_waiting_screen():
+    global username_opp, side_opp
+    
     screen.fill(BLACK)
     title_text = font40.render("Waiting for Opponent...", True, WHITE)
-    title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
     screen.blit(title_text, title_rect)
-    pygame.display.update()
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            quit()
+    
+    running = True
+    while running:
+        listen_for_username()
+        if(username_opp != None and side_opp != None):
+            running = False
+            
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+                
+        pygame.display.update()
 
 def show_start_screen():
     screen.fill(BLACK)
@@ -356,25 +411,24 @@ class Ball:
 
 
 async def main():
+    global username_opp
     
     asyncio.create_task(exportniosconsole.main())
-    asyncio.create_task(listen_for_username())
+    # asyncio.create_task(listen_for_username())
     
     username = enter_username_new()
     if(input_active == "left"):
         username_l = username
     elif(input_active == "right"):
         username_r = username
-        
-    while(username_opp == None):
-        show_waiting_screen()
     
-    if(username_opp != None):
-        if(side_opp == "left"):
-            username_l = username_opp
-        elif(side_opp == "right"):
-            username_r = username_opp
-        
+    show_waiting_screen()
+    
+    if(input_active == "left" and side_opp == "right"):
+        username_r = username_opp
+    elif(input_active == "right" and side_opp =="left"):
+        username_l = username_opp
+    
     show_start_screen()
 
     running = True
@@ -421,7 +475,8 @@ async def main():
             
         if isinstance(exportniosconsole.strip_output, str): 
             try:
-                if (exportniosconsole.strip_output != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
+                #if (exportniosconsole.strip_output != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
+                if (exportniosconsole.strip_output.lower().startswith("0x")):    
                     paddle1_value = int(exportniosconsole.strip_output, 16)  # Convert HEX to int
                     if (paddle1_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
                         paddle1_pos = paddle1_value - (1 << bit_width)  # Perform two's complement conversion
@@ -432,7 +487,8 @@ async def main():
 
         if isinstance(exportniosconsole.decoded_msg, str): 
             try:
-                if (exportniosconsole.decoded_msg != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
+                #if (exportniosconsole.decoded_msg != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
+                if (exportniosconsole.decoded_msg.lower().startswith("0x")):    
                     paddle2_value = int(exportniosconsole.decoded_msg, 16)  # Convert HEX to int
                     if (paddle2_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
                         paddle2_pos = paddle2_value - (1 << bit_width)  # Perform two's complement conversion

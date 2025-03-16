@@ -3,7 +3,7 @@ from collections import deque
 import json
 
 # Server details
-SERVER_HOST = "18.130.75.20"
+SERVER_HOST = "3.9.172.131"
 SERVER_PORT = 12000
 NIOS_CMD_SHELL_BAT = "C:/intelFPGA_lite/18.1/nios2eds/Nios_II_Command_Shell.bat"
 
@@ -72,6 +72,7 @@ async def send_messages(writer):
         print("Sending messages task cancelled.")
         
 async def send_json(data, writer):
+    global strip_output
     
     if writer is None:
         print("Error: No active connection to the server.")
@@ -80,7 +81,8 @@ async def send_json(data, writer):
     try:
         # Serialise data as JSON and send
         json_data = json.dumps(data)
-        writer.write(json_data.encode())
+        strip_output = json_data
+        strip_output_event.set()
         await writer.drain()
         print(f"Sent: {json_data}")
     except Exception as e:
