@@ -3,7 +3,7 @@ from collections import deque
 import json
 
 # Server details
-SERVER_HOST = "35.177.92.32"
+SERVER_HOST = "13.40.56.220"
 SERVER_PORT = 12000
 NIOS_CMD_SHELL_BAT = "C:/intelFPGA_lite/18.1/nios2eds/Nios_II_Command_Shell.bat"
 

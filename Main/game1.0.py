@@ -5,6 +5,8 @@ import pygame
 import time
 import json
 
+fetch_username_available_event = asyncio.Event()
+
 def start_nios_console():
     #Runs exportniosconsole's main() inside a dedicated asyncio event loop in a thread.
     loop = asyncio.new_event_loop()  # Create a new event loop for the thread
@@ -53,7 +55,16 @@ def listen_for_username():
                     print(f"Extracted: Username: {username_opp}, Side: {side_opp}")
             except json.JSONDecodeError:
                 pass
-            
+
+async def flag_server_waiting_for_username():
+    """
+    Notify the server that the client is waiting for the opponent's username.
+    """
+    await fetch_username_available_event.wait()  # Wait for the event to be set
+    fetch_username_available_event.clear()
+    message = json.dumps({"action": "waiting", "element": "username"})
+    await exportniosconsole.send_message(message)  # Send the message to the server
+
 # async def listen_for_username():
 #     global username_opp, side_opp
 #     print(f"Listening for username")
@@ -199,7 +210,8 @@ def enter_username_new():
     
     while running:
         
-        listen_for_username()
+        
+        # listen_for_username()
             
         screen.fill(BLACK)
         prompt_text = font40.render(
@@ -218,6 +230,7 @@ def enter_username_new():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     while True:
+                        fetch_username_available_event.set()
                         if(exportniosconsole.decoded_msg):
                             data = exportniosconsole.decoded_msg
                             if isinstance(data, dict) and "username" in data and "side" in data:
@@ -288,7 +301,7 @@ def show_waiting_screen():
     
     running = True
     while running:
-        listen_for_username()
+        fetch_username_available_event.set()
         if(username_opp != None and side_opp != None):
             running = False
             
