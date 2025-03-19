@@ -561,13 +561,9 @@ async def main():
                 replay_mode = False
                 ball.reset()
                 
-        else:
-            if input_active == "left":    
-                player_l.update(paddle1_pos)
-                player_r.update(paddle2_pos)
-            else:
-                player_l.update(paddle2_pos)
-                player_r.update(paddle1_pos)
+        else:    
+            player_l.update(paddle1_pos)
+            player_r.update(paddle2_pos)
                 
             point = ball.update()
             
