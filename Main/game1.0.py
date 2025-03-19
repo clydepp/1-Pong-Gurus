@@ -473,11 +473,18 @@ async def main():
             show_start_screen()
             running = True
             
-        if isinstance(exportniosconsole.strip_output, str): 
+        if(input_active == "left"):
+            left_pos = exportniosconsole.strip_output
+            right_pos = exportniosconsole.decoded_msg
+        elif(input_active == "right"):
+            left_pos = exportniosconsole.decoded_msg
+            right_pos = exportniosconsole.strip_output
+        
+        if isinstance(left_pos, str): 
             try:
                 #if (exportniosconsole.strip_output != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
-                if (exportniosconsole.strip_output.lower().startswith("0x")):    
-                    paddle1_value = int(exportniosconsole.strip_output, 16)  # Convert HEX to int
+                if (left_pos.lower().startswith("0x")):    
+                    paddle1_value = int(left_pos, 16)  # Convert HEX to int
                     if (paddle1_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
                         paddle1_pos = paddle1_value - (1 << bit_width)  # Perform two's complement conversion
                     else:
@@ -485,11 +492,11 @@ async def main():
             except ValueError:
                 pass
 
-        if isinstance(exportniosconsole.decoded_msg, str): 
+        if isinstance(right_pos, str): 
             try:
                 #if (exportniosconsole.decoded_msg != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
-                if (exportniosconsole.decoded_msg.lower().startswith("0x")):    
-                    paddle2_value = int(exportniosconsole.decoded_msg, 16)  # Convert HEX to int
+                if (right_pos.lower().startswith("0x")):    
+                    paddle2_value = int(right_pos, 16)  # Convert HEX to int
                     if (paddle2_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
                         paddle2_pos = paddle2_value - (1 << bit_width)  # Perform two's complement conversion
                     else:
