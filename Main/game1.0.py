@@ -38,6 +38,8 @@ clock = pygame.time.Clock()
 FPS = 30
 username_opp = None
 side_opp = None
+winner_opp = False
+winner_available = asyncio.Event()
 opp_username_available = asyncio.Event()
 ballposx_global, ballposy_global = None, None
 ballpos_available = asyncio.Event()
@@ -55,6 +57,7 @@ def listen_for_username():
                     print(f"Extracted: Username: {username_opp}, Side: {side_opp}")
             except json.JSONDecodeError:
                 pass
+
 
 async def flag_server_waiting_for_username():
     """
@@ -83,6 +86,21 @@ async def flag_server_waiting_for_username():
 #             print("Not Json data.")
 #             break
         
+async def listen_for_winners():
+    global winner_opp, side_opp
+    
+    while True:
+        try:
+            data = json.loads(exportniosconsole.decoded_msg)
+            if isinstance(data, dict) and "Winner" in data and "side" in data: # check if data is username and side
+                winner_opp = data.get("Winner")
+                side_opp = data.get("side")
+                print(f"Extracted: Winner: {winner_opp}, {side_opp}")
+                winner_available.set()
+        except json.JSONDecodeError:
+            print("Not Json data.")
+            break
+
 async def listen_for_ballpos():
     global ballposx_global, ballposy_global
     
@@ -473,15 +491,26 @@ async def main():
         screen.fill(BLACK)
         bit_width = 32
         
-        if (player_l_Score == 4 or player_r_Score == 4):
+        if (player_l_Score == 4 or player_r_Score == 4 or winner_opp == True):
             running = False
-            if player_l_Score == 4:
-                text = font20.render(username_l + " VICTORY :P", True, WHITE)
+            if (player_l_Score == 4 or side_opp == "left"):
+                text = font20.render(username_l + " VICTORY", True, WHITE)
                 player_l.wins += 4
                 
-            else:
-                text = font20.render(username_r + " VICTORY Bo", True, WHITE)
+                exportniosconsole.win = True
+                exportniosconsole.side = "left"
+            
+                exportniosconsole.winner_available_event.set()
+                
+                
+            elif (player_r_Score == 4 or side_opp == "right"):
+                text = font20.render(username_r + " VICTORY", True, WHITE)
                 player_r.wins += 4
+                
+                exportniosconsole.win = True
+                exportniosconsole.side = "right"
+            
+                exportniosconsole.winner_available_event.set()
                 
             screen.blit(text, (WIDTH // 2 - 40, HEIGHT // 2 - 10))
             pygame.display.update()
@@ -489,6 +518,8 @@ async def main():
             player_l_Score = 0
             player_r_Score = 0
             replay_mode = False
+            winner_opp = False
+            exportniosconsole.win = False
             ball.reset()
             username_l, username_r = enter_username()
             show_start_screen()
