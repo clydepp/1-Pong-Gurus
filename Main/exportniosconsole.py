@@ -23,6 +23,7 @@ username = None # Username for the client
 side = None # side of player
 ballposx = None
 ballposy= None
+ballside = None
 
 
 async def stream_nios_console():
@@ -108,6 +109,7 @@ async def send_username(writer):
 async def send_ballpos(writer):
     global ballposx
     global ballposy
+    global ballside
     try:
         while True:
             await ballpos_available_event.wait()
@@ -117,6 +119,7 @@ async def send_ballpos(writer):
                 data = {
                     "ballposx": ballposx,
                     "ballposy": ballposy,
+                    "ballside": ballside
                 }
                 
                 await send_json(data, writer)

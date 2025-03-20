@@ -54,7 +54,7 @@ def handle_client(client_socket, addr):
                             else:
                                 print(f"Opponent not found for {addr}.")
                             
-                if isinstance(data, dict) and "username" in data and "side" in data: # check if data is username and side
+                elif isinstance(data, dict) and "username" in data and "side" in data: # check if data is username and side
                     username = data.get("username")
                     side = data.get("side")
                     print(f"Extracted: Username: {username}, Side: {side}")
@@ -62,6 +62,14 @@ def handle_client(client_socket, addr):
                     client_to_side[side] = addr 
                     print(f"Added {username} and {side} to user_data and client_to_side.")
                     # broadcast(cmsg, client_socket)
+                
+                elif isinstance(data, dict) and "ballposx" in data and "ballposy" in data and "ballside" in data: # check if data is username and side
+                    # ballposx = data.get("ballposx")
+                    # ballposy = data.get("ballposy")
+                    # print(f"Extracted: ballposx: {ballposx}, ballposy: {ballposy}")
+                    ballside = data.get("ballside")
+                    if(ballside == "left"):
+                        broadcast(cmsg, client_socket)
                 
                 else:
                     print("Invalid JSON data.")

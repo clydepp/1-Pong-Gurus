@@ -39,8 +39,8 @@ FPS = 30
 username_opp = None
 side_opp = None
 opp_username_available = asyncio.Event()
-# ballposx_global, ballposy_global = None, None
-# ballpos_available = asyncio.Event()
+ballposx_global, ballposy_global = None, None
+ballpos_available = asyncio.Event()
 
 def listen_for_username():
     global username_opp, side_opp
@@ -64,6 +64,8 @@ async def flag_server_waiting_for_username():
     fetch_username_available_event.clear()
     message = json.dumps({"action": "waiting", "element": "username"})
     await exportniosconsole.send_message(message)  # Send the message to the server
+    
+
 
 # async def listen_for_username():
 #     global username_opp, side_opp
@@ -81,20 +83,20 @@ async def flag_server_waiting_for_username():
 #             print("Not Json data.")
 #             break
         
-# async def listen_for_ballpos():
-#     global ballposx_global, ballposy_global
+async def listen_for_ballpos():
+    global ballposx_global, ballposy_global
     
-#     while True:
-#         try:
-#             data = json.loads(exportniosconsole.decoded_msg)
-#             if isinstance(data, dict) and "ballposx" in data and "ballposy" in data: # check if data is username and side
-#                 ballposx_global = data.get("ballposx")
-#                 ballposy_global = data.get("ballposy")
-#                 print(f"Extracted: Ball Position: {ballposx_global}, {ballposy_global}")
-#                 ballpos_available.set()
-#         except json.JSONDecodeError:
-#             print("Not Json data.")
-#             break
+    while True:
+        try:
+            data = json.loads(exportniosconsole.decoded_msg)
+            if isinstance(data, dict) and "ballposx" in data and "ballposy" in data and "ballside" in data: # check if data is username and side
+                ballposx_global = data.get("ballposx")
+                ballposy_global = data.get("ballposy")
+                print(f"Extracted: Ball Position: {ballposx_global}, {ballposy_global}")
+                ballpos_available.set()
+        except json.JSONDecodeError:
+            print("Not Json data.")
+            break
             
 # def handle_username_submit(username, side, writer):
     
@@ -387,14 +389,20 @@ class Ball:
         self.ball = pygame.draw.circle(screen, self.color, (self.posx, self.posy), self.radius)
 
     def update(self):
-        self.posx += self.speed * self.xFac
-        self.posy += self.speed * self.yFac
-        
-        exportniosconsole.ballposx = self.posx
-        exportniosconsole.ballposy = self.posy
-        
-        exportniosconsole.ballpos_available_event.set()
-        
+        if(input_active == "right"):
+            self.posx = ballposx_global
+            self.posy = ballposy_global
+            
+        elif(input_active == "left"):
+            self.posx += self.speed * self.xFac
+            self.posy += self.speed * self.yFac
+            
+            exportniosconsole.ballposx = self.posx
+            exportniosconsole.ballposy = self.posy
+            exportniosconsole.ballside = input_active
+            
+            exportniosconsole.ballpos_available_event.set()
+            
         if self.posy <= 0 or self.posy >= HEIGHT:
             self.yFac *= -1
         if self.posx <= 0 and self.firstTime:
