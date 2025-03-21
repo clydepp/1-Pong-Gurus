@@ -43,6 +43,7 @@ def handle_client(client_socket, addr):
                     if action == "waiting" and element == "username":
                         
                         print(f"Client {addr} is waiting for opponent's username.")
+                        opponent_found = False
                         for side, client_addr in client_to_side.items():
                             if client_addr != addr:
                                 opponent_username = user_data.get(side)
@@ -51,8 +52,9 @@ def handle_client(client_socket, addr):
                                     "side": side})
                                 client_socket.send(response.encode())
                                 print(f"Sent opponent's username to {addr}.")
-                            else:
-                                print(f"Opponent not found for {addr}.")
+                                opponent_found = True
+                        if not opponent_found:
+                            print(f"No opponent found for {addr}.")
                             
                 elif isinstance(data, dict) and "username" in data and "side" in data: # check if data is username and side
                     username = data.get("username")
@@ -62,6 +64,9 @@ def handle_client(client_socket, addr):
                     client_to_side[side] = addr 
                     print(f"Added {username} and {side} to user_data and client_to_side.")
                     # broadcast(cmsg, client_socket)
+                    
+                    print("Current user_data:", user_data)
+                    print("Current client_to_side:", client_to_side)
                 
                 elif isinstance(data, dict) and "ballposx" in data and "ballposy" in data and "ballside" in data: # check if data is username and side
                     # ballposx = data.get("ballposx")
@@ -80,20 +85,42 @@ def handle_client(client_socket, addr):
             broadcast(cmsg, client_socket)
 
     except ConnectionResetError:
-        print(f"Client {addr} forcibly closed the connection.")
-        if addr in client_to_side.values():
-            temp_side = client_to_side.pop(addr)
-            user_data.pop(temp_side)
-            print(f"Removed {temp_side} from user_data and client_to_side.")
+        for side, client_addr in client_to_side.items():
+            if client_addr == addr:
+                side_to_remove = side
+                break
+
+        if side_to_remove:
+            # Remove the side from both maps
+            client_to_side.pop(side_to_remove)
+            user_data.pop(side_to_remove)
+            print(f"Removed {side_to_remove} from user_data and client_to_side.")
+            print("Current user_data:", user_data)
+            print("Current client_to_side:", client_to_side)
+
 
     finally:
         print(f"Client {addr} disconnected.")
-        if addr in client_to_side.values():
-            temp_side = client_to_side.pop(addr)
-            user_data.pop(temp_side)
-            print(f"Removed {temp_side} from user_data and client_to_side.")
+        # Find the side associated with the address
+        side_to_remove = None
+        for side, client_addr in client_to_side.items():
+            if client_addr == addr:
+                side_to_remove = side
+                break
 
-        clients.remove(client_socket)
+        if side_to_remove:
+            # Remove the side from both maps
+            client_to_side.pop(side_to_remove)
+            user_data.pop(side_to_remove)
+            print(f"Removed {side_to_remove} from user_data and client_to_side.")
+            print("Current user_data:", user_data)
+            print("Current client_to_side:", client_to_side)
+        
+        # Remove the client from the clients list
+        if client_socket in clients:
+            clients.remove(client_socket)
+
+        # Close the client socket
         client_socket.close()
         
 

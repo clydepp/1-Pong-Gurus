@@ -104,6 +104,7 @@ async def send_waiting_username(writer):
             }
             
             await send_json(data, writer)
+            await asyncio.sleep(0.5)
     except asyncio.CancelledError:
         print("Sending waiting username task cancelled.")
     
