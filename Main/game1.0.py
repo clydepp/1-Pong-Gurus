@@ -509,10 +509,11 @@ async def main():
             if (player_l_Score == 4 or side_opp == "left"):
                 text = font20.render(username_l + " VICTORY", True, WHITE)
                 player_l.wins += 4
-                
+                exportniosconsole.win_available_event.set()
             elif (player_r_Score == 4 or side_opp == "right"):
                 text = font20.render(username_r + " VICTORY", True, WHITE)
                 player_r.wins += 4
+                exportniosconsole.win_available_event.set()
             
             screen.blit(text, (WIDTH // 2 - 40, HEIGHT // 2 - 10))
             pygame.display.update()

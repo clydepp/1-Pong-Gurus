@@ -68,6 +68,13 @@ def handle_client(client_socket, addr):
                     print("Current user_data:", user_data)
                     print("Current client_to_side:", client_to_side)
                 
+                elif isinstance(data, dict) and "win" in data and "side" in data:
+                    win = data.get("win")
+                    side = data.get("side")
+                    print(f"Extracted: Win: {win}, Side: {side}")
+                    broadcast(cmsg, client_socket)
+                elif isinstance(data, dict) and "end" in data:
+                    broadcast(cmsg, client_socket)
                 elif isinstance(data, dict) and "ballposx" in data and "ballposy" in data and "ballside" in data: # check if data is username and side
                     # ballposx = data.get("ballposx")
                     # ballposy = data.get("ballposy")
