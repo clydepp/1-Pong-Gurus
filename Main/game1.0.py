@@ -450,7 +450,7 @@ class Ball:
 
 
 async def main():
-    global username_opp
+    global username_opp, winner_opp
     
     asyncio.create_task(exportniosconsole.main())
     # asyncio.create_task(listen_for_username())
@@ -534,27 +534,37 @@ async def main():
         
         if isinstance(left_pos, str): 
             try:
-                #if (exportniosconsole.strip_output != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
-                if (left_pos.lower().startswith("0x")):    
-                    paddle1_value = int(left_pos, 16)  # Convert HEX to int
-                    if (paddle1_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
-                        paddle1_pos = paddle1_value - (1 << bit_width)  # Perform two's complement conversion
-                    else:
-                        paddle1_pos = paddle1_value
-            except ValueError:
-                pass
+                # Check if the string is JSON and skip processing if it is
+                json.loads(left_pos)  # Attempt to parse as JSON
+                print("Ignoring JSON message in left_pos.")
+            except json.JSONDecodeError:
+                # Process only if it's not JSON
+                try:
+                    if left_pos.lower().startswith("0x"):    
+                        paddle1_value = int(left_pos, 16)  # Convert HEX to int
+                        if (paddle1_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
+                            paddle1_pos = paddle1_value - (1 << bit_width)  # Perform two's complement conversion
+                        else:
+                            paddle1_pos = paddle1_value
+                except ValueError:
+                    pass
 
         if isinstance(right_pos, str): 
             try:
-                #if (exportniosconsole.decoded_msg != '\x1b]2;Altera Nios II EDS 18.1 [gcc4]\x07nios2-terminal: connected to hardware target using JTAG UART on cable'): # Ensure it's a string
-                if (right_pos.lower().startswith("0x")):    
-                    paddle2_value = int(right_pos, 16)  # Convert HEX to int
-                    if (paddle2_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
-                        paddle2_pos = paddle2_value - (1 << bit_width)  # Perform two's complement conversion
-                    else:
-                        paddle2_pos = paddle2_value 
-            except ValueError:
-                pass
+                # Check if the string is JSON and skip processing if it is
+                json.loads(right_pos)  # Attempt to parse as JSON
+                print("Ignoring JSON message in right_pos.")
+            except json.JSONDecodeError:
+                # Process only if it's not JSON
+                try:
+                    if right_pos.lower().startswith("0x"):    
+                        paddle2_value = int(right_pos, 16)  # Convert HEX to int
+                        if (paddle2_value & (1 << (bit_width - 1))) != 0:  # Check if the sign bit is set
+                            paddle2_pos = paddle2_value - (1 << bit_width)  # Perform two's complement conversion
+                        else:
+                            paddle2_pos = paddle2_value 
+                except ValueError:
+                    pass
 
         
         

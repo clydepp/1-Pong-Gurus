@@ -160,6 +160,7 @@ async def send_ballpos(writer):
                 }
                 
                 await send_json(data, writer)
+                await asyncio.sleep(0.015)
     except asyncio.CancelledError:
         print("Sending ball position task cancelled.")
         
