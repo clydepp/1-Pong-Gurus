@@ -407,19 +407,8 @@ class Ball:
         self.ball = pygame.draw.circle(screen, self.color, (self.posx, self.posy), self.radius)
 
     def update(self):
-        if(input_active == "right"):
-            self.posx = ballposx_global
-            self.posy = ballposy_global
-            
-        elif(input_active == "left"):
-            self.posx += self.speed * self.xFac
-            self.posy += self.speed * self.yFac
-            
-            exportniosconsole.ballposx = self.posx
-            exportniosconsole.ballposy = self.posy
-            exportniosconsole.ballside = input_active
-            
-            exportniosconsole.ballpos_available_event.set()
+        self.posx += self.speed * self.xFac
+        self.posy += self.speed * self.yFac
             
         if self.posy <= 0 or self.posy >= HEIGHT:
             self.yFac *= -1
@@ -491,26 +480,16 @@ async def main():
         screen.fill(BLACK)
         bit_width = 32
         
-        if (player_l_Score == 4 or player_r_Score == 4 or winner_opp == True):
+        if (player_l_Score == 5 or player_r_Score == 5):
             running = False
-            if (player_l_Score == 4 or side_opp == "left"):
+            if (player_l_Score == 5 or side_opp == "left"):
                 text = font20.render(username_l + " VICTORY", True, WHITE)
-                player_l.wins += 4
-                
-                exportniosconsole.win = True
-                exportniosconsole.side = "left"
-            
-                exportniosconsole.winner_available_event.set()
+                player_l.wins += 5
                 
                 
-            elif (player_r_Score == 4 or side_opp == "right"):
+            elif (player_r_Score == 5 or side_opp == "right"):
                 text = font20.render(username_r + " VICTORY", True, WHITE)
-                player_r.wins += 4
-                
-                exportniosconsole.win = True
-                exportniosconsole.side = "right"
-            
-                exportniosconsole.winner_available_event.set()
+                player_r.wins += 5
                 
             screen.blit(text, (WIDTH // 2 - 40, HEIGHT // 2 - 10))
             pygame.display.update()
