@@ -249,6 +249,7 @@ def enter_username_new():
                 if event.key == pygame.K_RETURN:
                     while True:
                         exportniosconsole.fetch_username_available_event.set()
+                        listen_for_username()
                         if(exportniosconsole.decoded_msg):
                             data = exportniosconsole.decoded_msg
                             if isinstance(data, dict) and "username" in data and "side" in data:
@@ -320,6 +321,7 @@ def show_waiting_screen():
     running = True
     while running:
         exportniosconsole.fetch_username_available_event.set()
+        listen_for_username()
         if(username_opp != None and side_opp != None):
             running = False
             
