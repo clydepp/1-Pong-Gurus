@@ -20,6 +20,7 @@ strip_output_event = asyncio.Event()  # Async event for signaling new messages
 username_available_event = asyncio.Event()  # Async event for signaling username availability
 ballpos_available_event = asyncio.Event()
 winner_available_event = asyncio.Event()
+fetch_username_available_event = asyncio.Event()
 username = None # Username for the client
 win = False
 side = None # side of player
@@ -91,6 +92,22 @@ async def send_json(data, writer):
     except Exception as e:
         print(f"Error sending json: {e}")
         
+async def send_waiting_username(writer):
+    try:
+        while True:
+            await fetch_username_available_event.wait()
+            fetch_username_available_event.clear()
+            
+            data = {
+                "action": "waiting",
+                "element": "username"
+            }
+            
+            await send_json(data, writer)
+    except asyncio.CancelledError:
+        print("Sending waiting username task cancelled.")
+    
+
 async def send_username(writer):
     global username, side
     try:
