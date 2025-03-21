@@ -3,7 +3,7 @@ from collections import deque
 import json
 
 # Server details
-SERVER_HOST = "13.40.56.220"
+SERVER_HOST = "35.177.74.34"
 SERVER_PORT = 12000
 NIOS_CMD_SHELL_BAT = "C:/intelFPGA_lite/18.1/nios2eds/Nios_II_Command_Shell.bat"
 
@@ -230,15 +230,18 @@ async def tcp_client():
     send_task = asyncio.create_task(send_messages(writer))
     receive_task = asyncio.create_task(receive_messages(reader))
     username_task = asyncio.create_task(send_username(writer))
+    waiting_task = asyncio.create_task(send_waiting_username(writer))
+    ballpos_task = asyncio.create_task(send_ballpos(writer))
+    winner_task = asyncio.create_task(send_winner(writer))
     
     try:
-        await asyncio.gather(send_task, receive_task, username_task)
+        await asyncio.gather(send_task, receive_task, username_task, waiting_task, ballpos_task, winner_task)
     except asyncio.CancelledError:
         print("TCP Client Task Cancelled.")
     finally:
         send_task.cancel()
         receive_task.cancel()
-        await asyncio.gather(send_task, receive_task, username_task, return_exceptions=True)
+        await asyncio.gather(send_task, receive_task, username_task, waiting_task, ballpos_task, winner_task, return_exceptions=True)
         
         writer.close()
         await writer.wait_closed()
