@@ -36,7 +36,8 @@ clock = pygame.time.Clock()
 FPS = 30
 username_opp = None
 side_opp = None
-winner_opp = False
+win_opp = False
+win_side = None
 winner_available = asyncio.Event()
 opp_username_available = asyncio.Event()
 ballposx_global, ballposy_global = None, None
@@ -85,15 +86,15 @@ def listen_for_username():
 #             break
         
 async def listen_for_winners():
-    global winner_opp, side_opp
+    global win_opp, win_side
     
     while True:
         try:
             data = json.loads(exportniosconsole.decoded_msg)
-            if isinstance(data, dict) and "Winner" in data and "side" in data: # check if data is username and side
-                winner_opp = data.get("Winner")
-                side_opp = data.get("side")
-                print(f"Extracted: Winner: {winner_opp}, {side_opp}")
+            if isinstance(data, dict) and "win" in data and "side" in data: # check if data is username and side
+                win_opp = data.get("win")
+                win_side = data.get("side")
+                print(f"Extracted: Win: {win_opp}, {win_side}")
                 winner_available.set()
         except json.JSONDecodeError:
             print("Not Json data.")
@@ -407,19 +408,23 @@ class Ball:
         self.ball = pygame.draw.circle(screen, self.color, (self.posx, self.posy), self.radius)
 
     def update(self):
-        if(input_active == "right"):
-            self.posx = ballposx_global
-            self.posy = ballposy_global
+        
+        self.posx += self.speed * self.xFac
+        self.posy += self.speed * self.yFac
+        
+        # if(input_active == "right"):
+        #     self.posx = ballposx_global
+        #     self.posy = ballposy_global
             
-        elif(input_active == "left"):
-            self.posx += self.speed * self.xFac
-            self.posy += self.speed * self.yFac
+        # elif(input_active == "left"):
+        #     self.posx += self.speed * self.xFac
+        #     self.posy += self.speed * self.yFac
             
-            exportniosconsole.ballposx = self.posx
-            exportniosconsole.ballposy = self.posy
-            exportniosconsole.ballside = input_active
+        #     exportniosconsole.ballposx = self.posx
+        #     exportniosconsole.ballposy = self.posy
+        #     exportniosconsole.ballside = input_active
             
-            exportniosconsole.ballpos_available_event.set()
+        #     exportniosconsole.ballpos_available_event.set()
             
         if self.posy <= 0 or self.posy >= HEIGHT:
             self.yFac *= -1
@@ -450,7 +455,7 @@ class Ball:
 
 
 async def main():
-    global username_opp, winner_opp
+    global username_opp, win_opp, win_side
     
     asyncio.create_task(exportniosconsole.main())
     # asyncio.create_task(listen_for_username())
@@ -490,28 +495,25 @@ async def main():
     while running:
         screen.fill(BLACK)
         bit_width = 32
+        listen_for_winners()
+        if(win_opp):
+            if(win_side == "left"):
+                player_l_Score += 1
+                point = -1
+            elif(win_side == "right"):
+                player_r_Score += 1
+                point = 1
         
-        if (player_l_Score == 4 or player_r_Score == 4 or winner_opp == True):
+        if (player_l_Score == 4 or player_r_Score == 4):
             running = False
             if (player_l_Score == 4 or side_opp == "left"):
                 text = font20.render(username_l + " VICTORY", True, WHITE)
                 player_l.wins += 4
                 
-                exportniosconsole.win = True
-                exportniosconsole.side = "left"
-            
-                exportniosconsole.winner_available_event.set()
-                
-                
             elif (player_r_Score == 4 or side_opp == "right"):
                 text = font20.render(username_r + " VICTORY", True, WHITE)
                 player_r.wins += 4
-                
-                exportniosconsole.win = True
-                exportniosconsole.side = "right"
             
-                exportniosconsole.winner_available_event.set()
-                
             screen.blit(text, (WIDTH // 2 - 40, HEIGHT // 2 - 10))
             pygame.display.update()
             time.sleep(5)
@@ -636,8 +638,14 @@ async def main():
                 replay_flash = True
                 if point == -1:
                     player_l_Score += 1
+                    exportniosconsole.win = True
+                    exportniosconsole.side = "left"
+                    exportniosconsole.winner_available_event.set()
                 elif point == 1:
                     player_r_Score += 1
+                    exportniosconsole.win = True
+                    exportniosconsole.side = "right"
+                    exportniosconsole.winner_available_event.set()
                     
                     
         player_l.display()

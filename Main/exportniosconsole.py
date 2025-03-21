@@ -135,7 +135,7 @@ async def send_winner(writer):
             
             if win:
                 data = {
-                    "Winner": username,
+                    "win": win,
                     "side": side
                 }
                 
